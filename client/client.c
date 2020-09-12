@@ -1,41 +1,57 @@
 #include "client.h"
 
-int main( int argc, char* argv[] )
+int main(int argc, char* argv[])
 {
-    char* path = NULL;
-    unsigned amount;
-    if( argc < 2 || argc > 4 )
+    if(argc < 2 || argc > 4)
     {
-        printf( "You need to specify correct parameters!\n");
-        exit( 0 );
+        perror("Wrong number of parameters. Correct: [-k <int>] <path>\n");
+        exit(-1);
     }
-    getArgs( &amount, &path, argc, argv);
-    printf("amount = %d \npath = %s \n", amount, path);
+
+    unsigned int products_amount = 1;
+    char* path = NULL;
+    getArguments(&products_amount, &path, argc, argv);
+    printf("Number of products: %u\nPath: %s\n", products_amount, path);
+    receiveItem(path);
 
     return 0;
 }
 
-void getArgs( unsigned* amount, char** path, int argc, char* argv[] )
+void getArguments(unsigned int* number_of_products, char** path, int argc, char* argv[])
 {
     int opt;
-    *amount = 1;
-    while( ( opt = getopt( argc, argv, "k:" ) ) != -1 )
+    while((opt = getopt(argc, argv,"k:")) != -1)
     {
-        switch( opt )
+        switch(opt)
         {
             case 'k':
-                *amount = strtol( optarg, NULL, 10 );
+                *number_of_products=strtol(optarg, NULL, 10);
                 break;
             default:
-                printf( "Wrong parameters! Usage: -k <int> path \n" );
-                exit(0);
+                perror("Wrong parameters. Correct: [-k <int>] <path>\n");
+                exit(-1);
         }
     }
 
-    if( optind >= argc )
+    *path=(argv)[optind];
+}
+
+void receiveItem(char* fifo_path)
+{
+    int fd = 0;
+    struct Item* item = malloc(sizeof(struct Item));
+    //union sigval sig;
+    if((fd = open(fifo_path, O_RDONLY)) < 0)
     {
-        printf("You need to specify configuration file path!\n");
-        exit(0);
+        perror("Błąd");
+        exit(-1);
     }
-    *path = (argv)[ optind ];
+    int size = read(fd, item, sizeof(struct Item) );
+    printf("size of read: %d", size);
+
+    //sig.sival_int = item->product_id;
+    printf("Signal: %d\n", item->sig_num);
+    printf("Towar: %s\n", item->product_name);
+    close(fd);
+    //sigqueue(item->pid, item->sig_num, sig);
 }
