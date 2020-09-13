@@ -76,10 +76,9 @@ char* pickFifo( char** fifo_paths )
 void receiveItem( int* fd, char* fifo_path)
 {
     struct Item* item = malloc(sizeof(struct Item));
-    union sigval sig;
     openFifo( fd, fifo_path);
     read( *fd, item, sizeof(struct Item) );
-
+    union sigval sig;
     sig.sival_int = item->product_id;
     printf("Signal to send to pay for obtained product: %d\n\n", item->sig_num);
     printf("Towar: %s\n\n", item->product_name);

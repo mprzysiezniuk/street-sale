@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 
 
     printf("sig_num = %d \npath = %s \n\n", sig_num, path);
-    createProduct(product, 1, sig_num);
+    createProduct(product, 6, sig_num);
     printf("Stworzylem produkt.\n\n");
     printf("id: %d, pid: %d\nsig_num: %d\ntowar: %s\n\n", product->product_id, product->pid, product->sig_num,
            product->towar);
@@ -62,10 +62,10 @@ int main(int argc, char *argv[]) {
 // ========================
 
     struct sigaction sa;
-    memset(&sa, '\0', sizeof(sa));
-    sa.sa_flags = SA_SIGINFO;
-    sa.sa_sigaction = &handler;
 
+    memset(&sa, '\0', sizeof(sa));
+    sa.sa_sigaction = handler;
+    sa.sa_flags = SA_SIGINFO;
     if (sigemptyset(&sa.sa_mask))
         perror("sigemptyset");
     if (sigaction(sig_num, &sa, NULL) == -1)
@@ -79,8 +79,9 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void handler() {
-    printf("Otrzymalem zaplate.\n\n");
+void handler(int sig, siginfo_t *si, void *uap)
+{
+    printf("Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int);
 }
 
 void createProduct(Product *product, int id, int sig_num) {

@@ -30,5 +30,4 @@ void readConfigurationFile( char** fifo_paths, char* path_to_conf_file, int* fd 
 int openFifo( int* fd, char* fifo);
 void sendProduct( int* fd, Product product);
 int readLine( int fd, char* file );
-void handler();
-;
+void handler(int sig, siginfo_t *si, void *uap);
