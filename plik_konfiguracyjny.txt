@@ -1,2 +1,3 @@
-/tmp/testpipe
-
+/home/mprzysiezniuk/pipes/testpipe
+/home/mprzysiezniuk/pipes/pipetest
+/home/mprzysiezniuk/pipes/fifarafa

@@ -14,14 +14,22 @@ int main( int argc, char* argv[] )
     Product* product = malloc(sizeof(Product));
 //    product->towar = malloc(sizeof(char)*TAB_SIZE);
     getArgs( &sig_num, &path, argc, argv);
-    printf("sig_num = %d \npath = %s \n", sig_num, path);
+    printf("Wczytalem parametry.\n\n");
+    printf("sig_num = %d \npath = %s \n\n", sig_num, path);
     createProduct(product, 1, sig_num);
-    printf("id: %d, pid: %d\nsig_num: %d\ntowar: %s\n", product->product_id, product->pid, product->sig_num, product->towar);
+    printf("Stworzylem produkt.\n\n");
+    printf("id: %d, pid: %d\nsig_num: %d\ntowar: %s\n\n", product->product_id, product->pid, product->sig_num, product->towar);
 
     int fd = 0;
-    openFile( path, &fd );
+    char** fifo_paths = malloc(CONF_FILE_SIZE * sizeof(char*));
+    printf("Wczytuje plik konfiguracyjny.\n\n");
+    readConfigurationFile( fifo_paths, path, &fd );
+    printf("Wczytalem plik konfiguracyjny\n\n");
+    printf("Otwieram fifo\n\n");
 
-    write( fd, product, sizeof(Product) );
+    //openFifo( &fd, fifo_paths[0]);
+    printf("Przesylam produkt klientowi.\n\n");
+
     free( product );
     return 0;
 }
@@ -53,21 +61,18 @@ void createProduct( Product* product, int id, int sig_num )
     }
 }
 
-void openFile( char* path, int* fd )
+void sendProduct( int* fd, Product product)
 {
-    char file[256];
-    printf("wchodze do openFile\n");
-    int fd_conf = open( path, O_RDONLY );
-    printf("otworzony konfiguracyjny\n");
-    if ( fd_conf < 0 )
+    if( write( *fd, &product, sizeof(Product) ) < 0 )
     {
-        perror("Chujowo\n");
-        exit( EXIT_FAILURE );
+        perror("sendProduct: Could not write to fifo: \n");
+        exit(EXIT_FAILURE);
     }
-    readLine( fd_conf, file);
-    printf("file = %s\n", file);
-    //printf("path = %s\n", fifo_path);
-    if( ( *fd = open( file, O_WRONLY | O_NONBLOCK ) ) < 0 )
+}
+
+void openFifo( int* fd, char* fifo)
+{
+        if( ( *fd = open( fifo, O_WRONLY | O_NONBLOCK ) ) < 0 )
     {
         if ( errno != ENXIO)
         {
@@ -77,24 +82,44 @@ void openFile( char* path, int* fd )
     }
 }
 
-void readLine( int fd, char* file )
+void readConfigurationFile( char** fifo_paths, char* path_to_conf_file, int* fd )
+{
+    printf("wchodze do openFile\n");
+    int fd_conf = open( path_to_conf_file, O_RDONLY );
+    printf("otworzony konfiguracyjny\n");
+    if ( fd_conf < 0 )
+    {
+        perror("Chujowo\n");
+        exit( EXIT_FAILURE );
+    }
+    *fifo_paths = (char*)malloc(256);
+    while( readLine( fd_conf, *fifo_paths++) > 0 )
+    {
+        *fifo_paths = (char*)malloc(256);
+    }
+}
+
+int readLine( int fd, char* file )
 {
     char* buff = file;
     char c;
-    while(1)
+    int status;
+    while( 1 )
     {
-        if(read(fd, &c, 1) < 0)
+        status = read( fd, &c, 1 );
+        if( status < 0 )
         {
             perror("readLine: read error!\n");
             exit(0);
         }
-        if(c == '\n')
+        if( c == '\n' || EOFILE )
         {
             break;
         }
         *buff = c;
         buff++;
     }
+    return status;
 }
 
 void getArgs( int* sig_num, char** path, int argc, char* argv[] )

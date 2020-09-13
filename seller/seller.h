@@ -9,6 +9,9 @@
 //#define TAB_SIZE 10240
 #define TAB_SIZE 193
 #define MAX_PRODUCT_AMOUNT 1000
+#define CONF_FILE_SIZE 50
+#define EOFILE status==0
+
 typedef struct Products
 {
     char towar[TAB_SIZE];
@@ -20,5 +23,7 @@ typedef struct Products
 
 void getArgs( int* sig_num, char** path, int argc, char* argv[]);
 void createProduct( Product* product, int id, int sig_num );
-void openFile( char* path, int* fd );
-void readLine( int fd, char* file );
+void readConfigurationFile( char** fifo_paths, char* path_to_conf_file, int* fd );
+void openFifo( int* fd, char* fifo);
+void sendProduct( int* fd, Product product);
+int readLine( int fd, char* file );
