@@ -5,6 +5,9 @@
 #include "sys/stat.h"
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
+#include <string.h>
+#include <time.h>
 
 //#define TAB_SIZE 10240
 #define TAB_SIZE 193
@@ -24,6 +27,8 @@ typedef struct Products
 void getArgs( int* sig_num, char** path, int argc, char* argv[]);
 void createProduct( Product* product, int id, int sig_num );
 void readConfigurationFile( char** fifo_paths, char* path_to_conf_file, int* fd );
-void openFifo( int* fd, char* fifo);
+int openFifo( int* fd, char* fifo);
 void sendProduct( int* fd, Product product);
 int readLine( int fd, char* file );
+void handler();
+;
