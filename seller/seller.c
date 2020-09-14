@@ -9,23 +9,40 @@ int main(int argc, char *argv[]) {
     char *path = NULL;
     //char isSold[MAX_PRODUCT_AMOUNT];
     int sig_num;
-    Product *product = malloc(sizeof(Product));
+
 //    product->towar = malloc(sizeof(char)*TAB_SIZE);
     getArgs(&sig_num, &path, argc, argv);
     printf("Wczytalem parametry.\n\n");
 
+    Product** products = malloc( sizeof( Product ) * MAX_PRODUCT_AMOUNT );
+
+    srand( time(NULL));
     struct timespec time, time2;
     time.tv_sec = 3;
     time.tv_nsec = 500000000L;
 
+// ========================
+
+    struct sigaction sa;
+
+    memset(&sa, '\0', sizeof(sa));
+    sa.sa_sigaction = handler;
+    sa.sa_flags = SA_SIGINFO;
+    if (sigemptyset(&sa.sa_mask))
+        perror("sigemptyset");
+    if (sigaction(sig_num, &sa, NULL) == -1)
+        perror("sigaction error");
+
+// ========================
 
     printf("sig_num = %d \npath = %s \n\n", sig_num, path);
-    createProduct(product, 6, sig_num);
-    printf("Stworzylem produkt.\n\n");
-    printf("id: %d, pid: %d\nsig_num: %d\ntowar: %s\n\n", product->product_id, product->pid, product->sig_num,
-           product->towar);
+//    createProduct(product, rand()% + 50, sig_num);
+//    printf("Stworzylem produkt.\n\n");
+//    printf("id: %d, pid: %d\nsig_num: %d\ntowar: %s\n\n", product->product_id, product->pid, product->sig_num,
+//           product->towar);
 
     int fd = 0;
+
     char **fifo_paths = malloc(CONF_FILE_SIZE * sizeof(char *));
     printf("Wczytuje plik konfiguracyjny.\n\n");
     readConfigurationFile(fifo_paths, path, &fd);
@@ -42,7 +59,7 @@ int main(int argc, char *argv[]) {
     while ((fifo_paths[++arr_len]) != NULL);
 
     int i = 0;
-    while (openFifo(&fd, fifo_paths[i++]) == ENXIO && i < arr_len - 1)
+    /*while (openFifo(&fd, fifo_paths[i++]) == ENXIO && i < arr_len - 1)
     {
         if ( nanosleep( &time, &time2 ) < 0 )
         {
@@ -58,30 +75,80 @@ int main(int argc, char *argv[]) {
     printf("Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[i - 1]);
     sendProduct(&fd, *product);
     //openFifo( &fd, fifo_paths[0]);
+    sleep(5);
+    free(product);*/
+    int counter = 1;
+    Product *ptr = *products;
+    while( 1 )
+    {
+//        if ( nanosleep( &time, &time2 ) < 0 )
+//        {
+//            perror("Nanosleep error: \n");
+//            exit(EXIT_FAILURE);
+//        }
+        sleep(5);
 
-// ========================
+        if ( i == arr_len - 1 )
+        {
+            i = 0;
+        }
+        printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
+        if( openFifo( &fd, fifo_paths[i] ) == ENXIO )
+        {
+            printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
+            i++;
+            //close(fd);
+            continue;
+        } else
+        {
+            if( isFifoEmpty( fd, fifo_paths[i] ) )
+            {
+                //close(fd);
+                //printf("fifo nie jest puste\n\n");
+                i++;
+                continue;
+            } else
+            {
+                ptr = malloc(sizeof(Product));
+                createProduct(ptr, counter++, sig_num);
+                printf("Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[i]);
+                sendProduct(&fd, *ptr++);
+                i++;
+            }
+        }
+        //free(product);
+    }
 
-    struct sigaction sa;
-
-    memset(&sa, '\0', sizeof(sa));
-    sa.sa_sigaction = handler;
-    sa.sa_flags = SA_SIGINFO;
-    if (sigemptyset(&sa.sa_mask))
-        perror("sigemptyset");
-    if (sigaction(sig_num, &sa, NULL) == -1)
-        perror("sigaction error");
-
-    while (1) sleep(10);
-
-// ========================
-
-    free(product);
     return 0;
 }
 
 void handler(int sig, siginfo_t *si, void *uap)
 {
     printf("Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int);
+}
+
+int isFifoEmpty(int fd, char* fifo)
+{
+    //openFifo(&fd, fifo);
+//    if ( !fd )
+//    {
+//        lseek(fd, 0, SEEK_END);
+//        if ( !lseek(fd, 0, SEEK_CUR) )
+//        {
+//            lseek(fd, 0, SEEK_SET);
+//            return 1;
+//        }
+//        lseek(fd, 0, SEEK_SET);
+//    }
+//    return 0;
+    int curr_location = lseek( fd, 0, SEEK_CUR );
+    if( !lseek(fd, 0, SEEK_END ) )
+        return 1;
+    else
+    {
+        lseek( fd, curr_location, SEEK_SET );
+        return 0;
+    }
 }
 
 void createProduct(Product *product, int id, int sig_num) {

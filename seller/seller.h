@@ -31,3 +31,4 @@ int openFifo( int* fd, char* fifo);
 void sendProduct( int* fd, Product product);
 int readLine( int fd, char* file );
 void handler(int sig, siginfo_t *si, void *uap);
+int isFifoEmpty(int fd, char* fifo);

@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <time.h>
+#include <string.h>
 
 #define TAB_SIZE 193
 #define CONF_FILE_SIZE 50
@@ -21,7 +22,7 @@ struct Item
 
 void getArgs(unsigned int* number_of_products, char** path, int argc, char* argv[]);
 char* pickFifo( char** fifo_paths );
-void openFifo( int* fd, char* fifo );
+void openFifo( int* fd, char* fifo_path );
 void receiveItem( int* fd, char* fifo_path);
 int readLine( int fd, char* file );
 void readConfigurationFile( char** fifo_paths, char* path_to_conf_file, int* fd );

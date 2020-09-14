@@ -17,19 +17,29 @@ int main(int argc, char* argv[])
     getArgs(&products_amount, &path, argc, argv);
     printf("Number of products: %u\nPath: %s\n\n", products_amount, path);
 
-    int fd = 0;
+    int fd_conf = 0;
+
     char** fifo_paths = malloc(CONF_FILE_SIZE * sizeof(char*));
     printf("Wczytuje plik konfiguracyjny.\n\n");
-    readConfigurationFile( fifo_paths, path, &fd );
+    readConfigurationFile( fifo_paths, path, &fd_conf );
     printf("Wczytalem plik konfiguracyjny\n\n");
 
+    int fd[products_amount];
+
+    int i = 0;
     char* fifo = malloc(sizeof(char)*256);
-    fifo = pickFifo(fifo_paths);
-    printf("Wybrane fifo: %s\n\n", fifo);
+    for( i = 0; i < products_amount; i++ )
+    {
+        //sleep(5);
+        fifo = pickFifo(fifo_paths);
+        printf("Wybrane fifo: %s\n\n", fifo);
 
-
-    printf("Otwieram wybrane fifo w trybie READ.\n\n");
-    receiveItem( &fd, fifo );
+        printf("Otwieram wybrane fifo w trybie READ.\n\n");
+        receiveItem( &fd[ i ], fifo );
+        //close(fd[i]);
+        //free(fifo);
+        //memset(fifo, '\0', 256);
+    }
 
     return 0;
 }
@@ -65,11 +75,10 @@ void openFifo( int* fd, char* fifo_path )
 char* pickFifo( char** fifo_paths )
 {
     int arr_len = -1;
-    //printf("picking fifo...\n");
     while( ( fifo_paths[ ++arr_len ] ) != NULL );
     //printf("rozmiar: %d", arr_len);
-    int i = rand() % (arr_len-1);
-    //printf("nr wybranego el: %d\n", i);
+    int i = rand() % (arr_len-2);
+    printf("nr wybranego el: %d\n", i);
     return fifo_paths[i];
 }
 
@@ -77,10 +86,11 @@ void receiveItem( int* fd, char* fifo_path)
 {
     struct Item* item = malloc(sizeof(struct Item));
     openFifo( fd, fifo_path);
+    //sleep(15);
     read( *fd, item, sizeof(struct Item) );
     union sigval sig;
     sig.sival_int = item->product_id;
-    printf("Signal to send to pay for obtained product: %d\n\n", item->sig_num);
+    printf("Item ID: %d\n\n", item->product_id);
     printf("Towar: %s\n\n", item->product_name);
     close(*fd);
 
