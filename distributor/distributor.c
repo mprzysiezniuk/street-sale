@@ -84,9 +84,9 @@ int main( int argc, char* argv[] )
             //close(fd);
             continue;
         } else {
-            if (isFifoEmpty(fd, fifo_paths[i])) {
+            if (isFifoEmpty(fd)) {
                 //close(fd);
-                //printf("fifo nie jest puste\n\n");
+                printf("fifo jest puste\n\n");
                 i++;
                 continue;
             } else {
@@ -145,17 +145,11 @@ int openFifo(int *fd, char *fifo)
     return 0;
 }
 
-
-int isFifoEmpty(int fd, char* fifo)
+int isFifoEmpty(int fd)
 {
-    int curr_location = lseek( fd, 0, SEEK_CUR );
-    if( !lseek(fd, 0, SEEK_END ) )
-        return 1;
-    else
-    {
-        lseek( fd, curr_location, SEEK_SET );
-        return 0;
-    }
+    int sz = 0;
+    ioctl(fd, FIONREAD, &sz);
+    return !sz;
 }
 
 void createLeaflet(Leaflet* leaflet, int signal_number, int ads_number)

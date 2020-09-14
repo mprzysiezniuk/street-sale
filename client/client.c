@@ -86,7 +86,7 @@ void receiveItem( int* fd, char* fifo_path)
 {
     struct Item* item = malloc(sizeof(struct Item));
     openFifo( fd, fifo_path);
-    //sleep(15);
+    sleep(100);
     read( *fd, item, sizeof(struct Item) );
     union sigval sig;
     sig.sival_int = item->product_id;

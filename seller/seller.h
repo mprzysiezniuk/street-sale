@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+#include <sys/ioctl.h>
 
 //#define TAB_SIZE 10240
 #define TAB_SIZE 193
@@ -31,4 +32,4 @@ int openFifo( int* fd, char* fifo);
 void sendProduct( int* fd, Product product);
 int readLine( int fd, char* file );
 void handler(int sig, siginfo_t *si, void *uap);
-int isFifoEmpty(int fd, char* fifo);
+int isFifoEmpty(int fd);

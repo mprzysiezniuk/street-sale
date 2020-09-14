@@ -17,9 +17,9 @@ int main(int argc, char *argv[]) {
     Product** products = malloc( sizeof( Product ) * MAX_PRODUCT_AMOUNT );
 
     srand( time(NULL));
-    struct timespec time, time2;
-    time.tv_sec = 3;
-    time.tv_nsec = 500000000L;
+//    struct timespec time, time2;
+//    time.tv_sec = 3;
+//    time.tv_nsec = 500000000L;
 
 // ========================
 
@@ -101,10 +101,10 @@ int main(int argc, char *argv[]) {
             continue;
         } else
         {
-            if( isFifoEmpty( fd, fifo_paths[i] ) )
+            if( !isFifoEmpty( fd ) )
             {
                 //close(fd);
-                //printf("fifo nie jest puste\n\n");
+                printf("Kanal dystrybucji jest zajety\n\n");
                 i++;
                 continue;
             } else
@@ -127,28 +127,11 @@ void handler(int sig, siginfo_t *si, void *uap)
     printf("Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int);
 }
 
-int isFifoEmpty(int fd, char* fifo)
+int isFifoEmpty(int fd)
 {
-    //openFifo(&fd, fifo);
-//    if ( !fd )
-//    {
-//        lseek(fd, 0, SEEK_END);
-//        if ( !lseek(fd, 0, SEEK_CUR) )
-//        {
-//            lseek(fd, 0, SEEK_SET);
-//            return 1;
-//        }
-//        lseek(fd, 0, SEEK_SET);
-//    }
-//    return 0;
-    int curr_location = lseek( fd, 0, SEEK_CUR );
-    if( !lseek(fd, 0, SEEK_END ) )
-        return 1;
-    else
-    {
-        lseek( fd, curr_location, SEEK_SET );
-        return 0;
-    }
+    int sz = 0;
+    ioctl(fd, FIONREAD, &sz);
+    return !sz;
 }
 
 void createProduct(Product *product, int id, int sig_num) {
