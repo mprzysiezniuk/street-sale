@@ -1,15 +1,19 @@
 #include "seller.h"
 
-int main(int argc, char *argv[]) {
+int isSold[MAX_PRODUCT_AMOUNT];
+int counter = 0;
+
+int main(int argc, char *argv[])
+{
     if (argc != 4) {
         printf("You need to specify correct parameters!\n");
         exit(EXIT_FAILURE);
     }
 
     char *path = NULL;
-    //char isSold[MAX_PRODUCT_AMOUNT];
-    int sig_num;
 
+    int sig_num;
+    memset(isSold, 0, MAX_PRODUCT_AMOUNT*sizeof(int));
 //    product->towar = malloc(sizeof(char)*TAB_SIZE);
     getArgs(&sig_num, &path, argc, argv);
     printf("Wczytalem parametry.\n\n");
@@ -17,11 +21,6 @@ int main(int argc, char *argv[]) {
     Product** products = malloc( sizeof( Product ) * MAX_PRODUCT_AMOUNT );
 
     srand( time(NULL));
-//    struct timespec time, time2;
-//    time.tv_sec = 3;
-//    time.tv_nsec = 500000000L;
-
-// ========================
 
     struct sigaction sa;
 
@@ -35,11 +34,17 @@ int main(int argc, char *argv[]) {
 
 // ========================
 
-    printf("sig_num = %d \npath = %s \n\n", sig_num, path);
-//    createProduct(product, rand()% + 50, sig_num);
-//    printf("Stworzylem produkt.\n\n");
-//    printf("id: %d, pid: %d\nsig_num: %d\ntowar: %s\n\n", product->product_id, product->pid, product->sig_num,
-//           product->towar);
+    struct sigaction sa1;
+
+    memset(&sa1, '\0', sizeof(sa1));
+    sa1.sa_sigaction = handler1;
+    sa1.sa_flags = SA_SIGINFO;
+    if (sigemptyset(&sa.sa_mask))
+        perror("sigemptyset");
+    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
+        perror("sigaction error");
+
+// ========================
 
     int fd = 0;
 
@@ -50,42 +55,14 @@ int main(int argc, char *argv[]) {
 
     printf("Otwieram fifo po kolei z listy\n\n");
 
-    //    for(int i = 0; i <= 3; i++)
-//    {
-//        printf("Fifo %d: %s\n", i, fifo_paths[i]);
-//    }
-
     int arr_len = -1;
     while ((fifo_paths[++arr_len]) != NULL);
 
     int i = 0;
-    /*while (openFifo(&fd, fifo_paths[i++]) == ENXIO && i < arr_len - 1)
-    {
-        if ( nanosleep( &time, &time2 ) < 0 )
-        {
-            perror("Nanosleep error: \n");
-            exit(EXIT_FAILURE);
-        }
 
-        printf("Otworzylem fifo: %s ale nikogo nie ma\n\n", fifo_paths[i - 1]);
-        continue;
-        printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
-
-    }
-    printf("Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[i - 1]);
-    sendProduct(&fd, *product);
-    //openFifo( &fd, fifo_paths[0]);
-    sleep(5);
-    free(product);*/
-    int counter = 1;
     Product *ptr = *products;
     while( 1 )
     {
-//        if ( nanosleep( &time, &time2 ) < 0 )
-//        {
-//            perror("Nanosleep error: \n");
-//            exit(EXIT_FAILURE);
-//        }
         sleep(5);
 
         if ( i == arr_len - 1 )
@@ -103,20 +80,20 @@ int main(int argc, char *argv[]) {
         {
             if( !isFifoEmpty( fd ) )
             {
-                //close(fd);
                 printf("Kanal dystrybucji jest zajety\n\n");
                 i++;
                 continue;
             } else
             {
                 ptr = malloc(sizeof(Product));
-                createProduct(ptr, counter++, sig_num);
+                createProduct(ptr, counter, sig_num);
                 printf("Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[i]);
                 sendProduct(&fd, *ptr++);
+                //1 - produkt wyslany, ale nie oplacony
+                isSold[counter++] = 1;
                 i++;
             }
         }
-        //free(product);
     }
 
     return 0;
@@ -125,6 +102,27 @@ int main(int argc, char *argv[]) {
 void handler(int sig, siginfo_t *si, void *uap)
 {
     printf("Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int);
+    //2 - produkt zostal oplacony
+    isSold[si->si_value.sival_int] = 2;
+}
+
+void handler1()
+{
+    int amount = 0;
+    printf("========= RAPORT =========\n");
+    printf("Products released: %d\n\n", counter);
+    for(int i = 0; i < counter; i++)
+    {
+        if(isSold[i] != 2)
+        {
+            amount++;
+        }
+        else
+        {
+            printf("Product number: %d is unpaid\n\n", i);
+        }
+    }
+    printf("Unpaid products number: %d\n\n", amount);
 }
 
 int isFifoEmpty(int fd)
@@ -134,67 +132,80 @@ int isFifoEmpty(int fd)
     return !sz;
 }
 
-void createProduct(Product *product, int id, int sig_num) {
+void createProduct(Product *product, int id, int sig_num)
+{
     product->product_id = id;
     product->sig_num = sig_num;
     product->pid = getpid();
 
     int fd = open("../pan_tadeusz.txt", O_RDONLY);
-    if (fd < 0) {
+    if (fd < 0)
+    {
         printf("createProduct: Could not open file\n");
         exit(EXIT_FAILURE);
     }
 
-    if (read(fd, product->towar, TAB_SIZE - 1) < 0) {
+    if (read(fd, product->towar, TAB_SIZE - 1) < 0)
+    {
         printf("createProduct: Could not read from file\n");
         exit(EXIT_FAILURE);
     }
     product->towar[TAB_SIZE - 1] = '\0';
 
-    if (close(fd) < 0) {
+    if (close(fd) < 0)
+    {
         printf("createProduct: Could not close file\n");
         exit(EXIT_FAILURE);
     }
 }
 
-void sendProduct(int *fd, Product product) {
-    if (write(*fd, &product, sizeof(Product)) < 0) {
+void sendProduct(int *fd, Product product)
+{
+    if (write(*fd, &product, sizeof(Product)) < 0)
+    {
         perror("sendProduct: Could not write to fifo: \n");
         exit(EXIT_FAILURE);
     }
 }
 
-int openFifo(int *fd, char *fifo) {
+int openFifo(int *fd, char *fifo)
+{
     errno = 0;
-    if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0) {
-        if (errno != ENXIO) {
+    if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0)
+    {
+        if (errno != ENXIO)
+        {
             perror("openFile: Could not open file\n");
             exit(EXIT_FAILURE);
         }
     }
-    if (errno == ENXIO) {
-        //close(*fd);
+    if (errno == ENXIO)
+    {
         return errno;
     }
     errno = 0;
     return 0;
 }
 
-void readConfigurationFile(char **fifo_paths, char *path_to_conf_file, int *fd) {
+void readConfigurationFile(char **fifo_paths, char *path_to_conf_file, int *fd)
+{
     printf("wchodze do openFile\n");
     int fd_conf = open(path_to_conf_file, O_RDONLY);
     printf("otworzony konfiguracyjny\n");
-    if (fd_conf < 0) {
-        perror("Chujowo\n");
+    if (fd_conf < 0)
+    {
+        perror("readConfigurationFile failure");
         exit(EXIT_FAILURE);
     }
     *fifo_paths = (char *) malloc(256);
-    while (readLine(fd_conf, *fifo_paths++) > 0) {
+    while (readLine(fd_conf, *fifo_paths++) > 0)
+    {
         *fifo_paths = (char *) malloc(256);
     }
 }
 
-int readLine(int fd, char *file) {
+int readLine(int fd, char *file)
+{
     char *buff = file;
     char c;
     int status;
@@ -204,7 +215,8 @@ int readLine(int fd, char *file) {
             perror("readLine: read error!\n");
             exit(0);
         }
-        if (c == '\n' || EOFILE) {
+        if (c == '\n' || EOFILE)
+        {
             break;
         }
         *buff = c;
@@ -213,11 +225,14 @@ int readLine(int fd, char *file) {
     return status;
 }
 
-void getArgs(int *sig_num, char **path, int argc, char *argv[]) {
+void getArgs(int *sig_num, char **path, int argc, char *argv[])
+{
     int opt;
     *sig_num = -1;
-    while ((opt = getopt(argc, argv, "s:")) != -1) {
-        switch (opt) {
+    while ((opt = getopt(argc, argv, "s:")) != -1)
+    {
+        switch (opt)
+        {
             case 's':
                 *sig_num = strtol(optarg, NULL, 10);
                 break;
@@ -227,16 +242,11 @@ void getArgs(int *sig_num, char **path, int argc, char *argv[]) {
         }
     }
 
-    if (*sig_num == -1) {
+    if (*sig_num == -1)
+    {
         printf("You need to specify -s parameter!\n");
         exit(EXIT_FAILURE);
     }
-
-//    if( optind >= argc )
-//    {
-//        printf("You need to specify configuration file path!\n");
-//        exit(0);
-//    }
 
     *path = (argv)[optind];
 }

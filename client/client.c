@@ -35,10 +35,7 @@ int main(int argc, char* argv[])
         printf("Wybrane fifo: %s\n\n", fifo);
 
         printf("Otwieram wybrane fifo w trybie READ.\n\n");
-        receiveItem( &fd[ i ], fifo );
-        //close(fd[i]);
-        //free(fifo);
-        //memset(fifo, '\0', 256);
+        collectItem( &fd[ i ], fifo );
     }
 
     return 0;
@@ -82,11 +79,10 @@ char* pickFifo( char** fifo_paths )
     return fifo_paths[i];
 }
 
-void receiveItem( int* fd, char* fifo_path)
+void collectItem( int* fd, char* fifo_path)
 {
     struct Item* item = malloc(sizeof(struct Item));
     openFifo( fd, fifo_path);
-    sleep(100);
     read( *fd, item, sizeof(struct Item) );
     union sigval sig;
     sig.sival_int = item->product_id;

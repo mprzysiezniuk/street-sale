@@ -34,6 +34,19 @@ int main( int argc, char* argv[] )
         perror("sigaction error");
 
 // ========================
+// ========================
+
+//    struct sigaction sa1;
+//
+//    memset(&sa1, '\0', sizeof(sa1));
+//    sa1.sa_sigaction = handler1;
+//    sa1.sa_flags = SA_SIGINFO;
+//    if (sigemptyset(&sa.sa_mask))
+//        perror("sigemptyset");
+//    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
+//        perror("sigaction error");
+
+// ========================
 
 //    printf("Posiadane ulotki: \n\n");
 //    for( int i = 0; i < ads_number; i++ )
@@ -50,20 +63,6 @@ int main( int argc, char* argv[] )
     int arr_len = -1;
     while ((fifo_paths[++arr_len]) != NULL);
 
-//    for (int i = 0; i < arr_len; i++)
-//    {
-//        if (isFifoEmpty(fd, fifo_paths[i]) == 1)
-//        {
-//            printf("Fifo: %s jest puste\n\n", fifo_paths[i]);
-//            continue;
-//        }
-//        printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
-//        openFifo(&fd, fifo_paths[i]);
-//        printf("Przesylam ulotke klientowi.\n\n");
-//        sendLeaflet(&fd, *leaflet);
-//    }
-//
-//    free(leaflet);
     int i = 0;
     while( 1 ) {
 //        if ( nanosleep( &time, &time2 ) < 0 )
