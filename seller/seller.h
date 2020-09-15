@@ -15,6 +15,7 @@
 #define MAX_PRODUCT_AMOUNT 1000
 #define CONF_FILE_SIZE 50
 #define EOFILE status==0
+#define EVER ;;
 
 typedef struct Products
 {
@@ -25,11 +26,11 @@ typedef struct Products
 } Product;
 
 void getArgs( int* sig_num, char** path, int argc, char* argv[]);
-void createProduct( Product* product, int id, int sig_num );
+int readLine( int fd, char* file );
 void loadConfigFile( char** fifo_paths, char* path_to_conf_file );
 int openFifo( int* fd, char* fifo);
+int isFifoEmpty( int fd );
+void createProduct( Product* product, int id, int sig_num );
 void sendProduct( int* fd, Product product);
-int readLine( int fd, char* file );
 void handler(int sig, siginfo_t *si, void *uap);
 void handler1();
-int isFifoEmpty( int fd );

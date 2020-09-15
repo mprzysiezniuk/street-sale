@@ -2,10 +2,12 @@
 
 int main( int argc, char* argv[] )
 {
-    srand(time(NULL));
+    srand( time( NULL ) );
+
     char* path = NULL;
     int sig_num;
     int ads_number;
+
     if( argc != 6 )
     {
         printf( "You need to specify correct parameters!\n" );
@@ -14,12 +16,22 @@ int main( int argc, char* argv[] )
     getArgs( &sig_num, &ads_number, &path, argc, argv );
     printf( "sig_num = %d \nads_number = %d\npath = %s \n", sig_num, ads_number, path );
 
-    //Leaflet leaflet[ads_number];
-    Leaflet** leaflets = malloc(sizeof(Leaflet)*MAX_LEAFLET_AMOUNT);
+    Flyer** flyers = malloc( sizeof( Flyer ) * ads_number );
+    if( !flyers )
+    {
+        perror("Malloc: Error allocating flyers" );
+        exit( EXIT_FAILURE );
+    }
+
     for( int i = 0; i < ads_number; i++ )
     {
-        leaflets[i] = malloc(sizeof(Leaflet));
-        createLeaflet(leaflets[i], sig_num, i);
+        flyers[ i ] = malloc( sizeof( Flyer ) );
+        if( !flyers[ i ] )
+        {
+            perror("Malloc: Error allocating flyers" );
+            exit( EXIT_FAILURE );
+        }
+        createFlyer( flyers[ i ], sig_num, i );
     }
 // ========================
 
@@ -51,20 +63,21 @@ int main( int argc, char* argv[] )
 //    printf("Posiadane ulotki: \n\n");
 //    for( int i = 0; i < ads_number; i++ )
 //    {
-//        printf("Ulotka %d: %d\n\n", i, leaflets[i]->ad_id);
+//        printf("Ulotka %d: %d\n\n", i, flyers[i]->ad_id);
 //    }
 
     int fd = 0;
-    char** fifo_paths = malloc(CONF_FILE_SIZE * sizeof(char*));
-    printf("Wczytuje plik konfiguracyjny.\n\n");
-    readConfigurationFile(fifo_paths, path, &fd);
-    printf("Wczytalem plik konfiguracyjny\n\n");
+    char** fifo_paths = malloc( CONF_FILE_SIZE * sizeof( char* ) );
+    printf( "Wczytuje plik konfiguracyjny.\n\n" );
+    loadConfigFile( fifo_paths, path );
+    printf( "Wczytalem plik konfiguracyjny\n\n" );
 
     int arr_len = -1;
-    while ((fifo_paths[++arr_len]) != NULL);
+    while ( ( fifo_paths[ ++arr_len ] ) != NULL );
 
     int i = 0;
-    while( 1 ) {
+    for(EVER)
+    {
 //        if ( nanosleep( &time, &time2 ) < 0 )
 //        {
 //            perror("Nanosleep error: \n");
@@ -72,89 +85,118 @@ int main( int argc, char* argv[] )
 //        }
         sleep(2);
 
-        if (i == arr_len - 1) {
+        if ( i == arr_len - 1 )
+        {
             i = 0;
         }
-        printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
+        printf( "Otwieram fifo: %s\n\n", fifo_paths[ i ]);
         int status = openFifo( &fd, fifo_paths[i] );
-        if (status == ENXIO)
+        if ( status == ENXIO )
         {
             printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
             i++;
             //close(fd);
             continue;
         }
-        else if( status == 999 || status == 998)
+        else if( status == 999 || status == 998 )
         {
-            printf("Podany plik to nie fifo.\n\n");
+            printf( "Podany plik to nie fifo.\n\n" );
             i++;
         }
         else {
-            if (isFifoEmpty(fd)) {
-                //close(fd);
-                printf("fifo jest puste\n\n");
+            if ( isFifoEmpty( fd ) )
+            {
+                printf( "fifo jest puste\n\n" );
                 i++;
                 continue;
-            } else {
+            } else
+                {
 
-                printf("Na kanale dystrybucji %s jest klient, wysylam ulotke\n\n", fifo_paths[i]);
-                sendLeaflet(&fd, pickLeaflet(leaflets, ads_number));
+                printf( "Na kanale dystrybucji %s jest klient, wysylam ulotke\n\n", fifo_paths[ i ] );
+                sendFlyer( &fd, pickFlyer( flyers, ads_number ) );
                 i++;
             }
         }
     }
-
     return 0;
 }
 
-void handler(int sig, siginfo_t *si, void *uap)
+void handler( int sig, siginfo_t *si, void *uap )
 {
-    printf("Ulotka o ID: %d zostala odczytana.\n\n", si->si_value.sival_int);
+    printf( "Ulotka o ID: %d zostala odczytana.\n\n", si->si_value.sival_int );
 }
 
-Leaflet pickLeaflet(Leaflet** leaflets, int ads_number)
+Flyer pickFlyer( Flyer** flyers, int ads_number )
 {
-    return *leaflets[rand()%+(ads_number-1)];
+    return *flyers[ rand() % +( ads_number - 1 ) ];
 }
 
-void readConfigurationFile(char** fifo_paths, char* path_to_conf_file, int* fd)
+void sendFlyer( int* fd, Flyer flyer )
 {
-    printf("wchodze do openFile\n");
-    int fd_conf = open(path_to_conf_file, O_RDONLY);
-    printf("otworzony konfiguracyjny\n");
-    if (fd_conf < 0)
+    if (write( *fd, &flyer, sizeof( flyer )) < 0 )
     {
-        perror("Chujowo\n");
-        exit(-1);
-    }
-    *fifo_paths = (char*) malloc(256);
-    while (readLine(fd_conf, *fifo_paths++) > 0)
-    {
-        *fifo_paths = (char*) malloc(256);
+        perror( "sendFlyer: Error writing to file" );
+        exit( EXIT_FAILURE );
     }
 }
 
-int openFifo(int *fd, char *fifo)
+void createFlyer( Flyer* flyer, int signal_number, int ads_number )
+{
+    flyer->pid = getpid();
+    flyer->sig_num = signal_number;
+    flyer->ad_id = 1000000 + ads_number;
+
+    int fd = open( "../pan_tadeusz.txt", O_RDONLY );
+    if ( fd < 0 )
+    {
+        perror( "createFlyer: Error opening file" );
+        exit( EXIT_FAILURE );
+    }
+
+    if ( read( fd, flyer->ad_name, TAB_SIZE - 1 ) == -1 )
+    {
+        perror( "createFlyer: Error reading file" );
+        exit( EXIT_FAILURE );
+    }
+
+    flyer->ad_name[ TAB_SIZE - 1 ] = '\0';
+
+    if ( close( fd ) < 0 )
+    {
+        perror("createFlyer: Error closing file" );
+        exit( EXIT_FAILURE );
+    }
+}
+
+int isFifoEmpty( int fd )
+{
+    int sz = 0;
+    ioctl( fd, FIONREAD, &sz );
+    return !sz;
+}
+
+int openFifo( int *fd, char *fifo )
 {
     struct stat stat_p;
     if( stat( fifo, &stat_p ) < 0 )
     {
         return 999;
 
-    }
-    else if( !S_ISFIFO(stat_p.st_mode) )
+    } else if( !S_ISFIFO( stat_p.st_mode ) )
     {
         return 998;
-    }
-    else {
+    } else {
         errno = 0;
-        if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0) {
-            if (errno != ENXIO) {
-                perror("openFile: Could not open file\n");
-                exit(EXIT_FAILURE);
+        if ( ( *fd = open( fifo, O_WRONLY | O_NONBLOCK ) ) < 0 )
+        {
+            if ( errno != ENXIO )
+            {
+                perror("openFile: Error opening file" );
+                exit( EXIT_FAILURE );
             }
         }
-        if (errno == ENXIO) {
+        if ( errno == ENXIO )
+        {
             return errno;
         }
         errno = 0;
@@ -162,64 +204,37 @@ int openFifo(int *fd, char *fifo)
     }
 }
 
-int isFifoEmpty(int fd)
+void loadConfigFile( char** fifo_paths, char* path_to_conf_file )
 {
-    int sz = 0;
-    ioctl(fd, FIONREAD, &sz);
-    return !sz;
-}
-
-void createLeaflet(Leaflet* leaflet, int signal_number, int ads_number)
-{
-    leaflet->pid = getpid();
-    leaflet->sig_num = signal_number;
-    leaflet->ad_id = 1000000 + ads_number;
-
-    int fd = open("../pan_tadeusz.txt", O_RDONLY);
-    if (fd == -1)
+    printf( "wchodze do openFile\n" );
+    int fd_conf = open( path_to_conf_file, O_RDONLY );
+    printf( "otworzony konfiguracyjny\n" );
+    if ( fd_conf < 0 )
     {
-        printf("createLeaflet: File open failed\n");
-        exit(-1);
+        perror("loadConfigFile: Error opening file" );
+        exit( EXIT_FAILURE );
     }
-
-    if (read(fd, leaflet->ad_name, TAB_SIZE - 1) == -1)
+    *fifo_paths = ( char* ) malloc( 256 );
+    while ( readLine( fd_conf, *fifo_paths++ ) > 0 )
     {
-        printf("createLeaflet: Read from file failed\n");
-        exit(-1);
-    }
-
-    leaflet->ad_name[TAB_SIZE - 1] = '\0';
-
-    if (close(fd) < 0)
-    {
-        printf("createLeaflet: Could not close file\n");
-        exit(EXIT_FAILURE);
+        *fifo_paths = ( char* ) malloc( 256 );
     }
 }
 
-void sendLeaflet(int* fd, Leaflet leaflet)
-{
-    if (write(*fd, &leaflet, sizeof(Leaflet)) < 0)
-    {
-        perror("sendLeaflet: Could not write to fifo: \n");
-        exit(-1);
-    }
-}
-
-int readLine(int fd, char* file)
+int readLine( int fd, char* file )
 {
     char* buff = file;
     char c;
     int status;
-    while (1)
+    for(EVER)
     {
         status = read(fd, &c, 1);
         if (status < 0)
         {
-            perror("readLine: read error!\n");
-            exit(0);
+            perror( "readLine: Error reading file" );
+            exit( EXIT_FAILURE );
         }
-        if (c == '\n' || EOFILE)
+        if ( c == '\n' || EOFILE )
         {
             break;
         }
@@ -257,11 +272,5 @@ void getArgs( int* sig_num, int* ad_number, char** path, int argc, char* argv[] 
         printf( "You need to specify -s and -r parameters!\n" );
         exit( EXIT_FAILURE );
     }
-
-//    if( optind >= argc )
-//    {
-//        printf("You need to specify configuration file path!\n");
-//        exit(0);
-//    }
-    *path = (argv)[ optind ];
+    *path = ( argv )[ optind ];
 }

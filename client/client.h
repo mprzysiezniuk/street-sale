@@ -11,6 +11,7 @@
 #define TAB_SIZE 193
 #define CONF_FILE_SIZE 50
 #define EOFILE status==0
+#define EVER ;;
 
 struct Item
 {
@@ -21,8 +22,8 @@ struct Item
 };
 
 void getArgs( int* number_of_products, char** path, int argc, char* argv[] );
+int readLine( int fd, char* file );
+void loadConfigFile( char** fifo_paths, char* path_to_conf_file );
 char* pickFifo( char** fifo_paths );
 void openFifo( int* fd, char* fifo_path );
 void collectItem( int* fd, char* fifo_path );
-int readLine( int fd, char* file );
-void loadConfigFile( char** fifo_paths, char* path_to_conf_file );

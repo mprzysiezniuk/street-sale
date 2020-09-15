@@ -46,23 +46,28 @@ int main( int argc, char* argv[] )
     return 0;
 }
 
-void getArgs( int* number_of_products, char** path, int argc, char* argv[] )
+void collectItem( int* fd, char* fifo_path )
 {
-    int opt;
-    while( ( opt = getopt( argc, argv,"k:" ) ) != -1 )
+    struct Item* item = malloc( sizeof( struct Item ) );
+    if( !item )
     {
-        switch( opt )
-        {
-            case 'k':
-                *number_of_products=strtol( optarg, NULL, 10 );
-                break;
-            default:
-                printf( "Wrong parameters. Correct: [-k <int>] <path>\n" );
-                exit( EXIT_FAILURE );
-        }
+        perror("collectItem: Error allocating item" );
+        exit( EXIT_FAILURE );
     }
+    openFifo( fd, fifo_path );
+    sleep(10);
+    read( *fd, item, sizeof( struct Item ) );
+    union sigval sig;
+    sig.sival_int = item->product_id;
+    printf( "Item ID: %d\n\n", item->product_id );
+    printf( "Towar: %s\n\n", item->product_name );
+    close( *fd );
 
-    *path=( argv )[ optind ];
+    if ( sigqueue( item->pid, item->sig_num, sig ) < 0 )
+    {
+        perror( "receiveItem: failed to send signal: " );
+        exit( EXIT_FAILURE );
+    }
 }
 
 void openFifo( int* fd, char* fifo_path )
@@ -94,30 +99,6 @@ char* pickFifo( char** fifo_paths )
     return fifo_paths[ i ];
 }
 
-void collectItem( int* fd, char* fifo_path )
-{
-    struct Item* item = malloc( sizeof( struct Item ) );
-    if( !item )
-    {
-        perror("collectItem: Error allocating item" );
-        exit( EXIT_FAILURE );
-    }
-    openFifo( fd, fifo_path );
-    sleep(10);
-    read( *fd, item, sizeof( struct Item ) );
-    union sigval sig;
-    sig.sival_int = item->product_id;
-    printf( "Item ID: %d\n\n", item->product_id );
-    printf( "Towar: %s\n\n", item->product_name );
-    close( *fd );
-
-    if ( sigqueue( item->pid, item->sig_num, sig ) < 0 )
-    {
-        perror( "receiveItem: failed to send signal: " );
-        exit( EXIT_FAILURE );
-    }
-}
-
 void loadConfigFile( char** fifo_paths, char* path_to_conf_file )
 {
     printf( "wchodze do openFile\n" );
@@ -140,7 +121,7 @@ int readLine( int fd, char* file )
     char* buff = file;
     char c;
     int status;
-    while( 1 )
+    for(EVER)
     {
         status = read( fd, &c, 1 );
         if( status < 0 )
@@ -156,4 +137,23 @@ int readLine( int fd, char* file )
         buff++;
     }
     return status;
+}
+
+void getArgs( int* number_of_products, char** path, int argc, char* argv[] )
+{
+    int opt;
+    while( ( opt = getopt( argc, argv,"k:" ) ) != -1 )
+    {
+        switch( opt )
+        {
+            case 'k':
+                *number_of_products=strtol( optarg, NULL, 10 );
+                break;
+            default:
+                printf( "Wrong parameters. Correct: [-k <int>] <path>\n" );
+                exit( EXIT_FAILURE );
+        }
+    }
+
+    *path=( argv )[ optind ];
 }

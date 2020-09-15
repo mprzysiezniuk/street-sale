@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     int fd = 0;
 
     Product *ptr = *products;
-    while( 1 )
+    for(EVER)
     {
         sleep(2);
 
@@ -126,26 +126,28 @@ void handler1()
 {
     int amount = 0;
     printf("========= RAPORT =========\n");
-    printf("Products released: %d\n\n", counter);
+    printf( "Products released: %d\n\n", counter );
     for( int i = 0; i < counter; i++ )
     {
-        if(isSold[i] != 2)
+        if( isSold[ i ] != 2 )
         {
             amount++;
         }
         else
         {
-            printf("Product number: %d is unpaid\n\n", i);
+            printf( "Product number: %d is unpaid\n\n", i );
         }
     }
-    printf("Unpaid products number: %d\n\n", amount);
+    printf( "Unpaid products number: %d\n\n", amount );
 }
 
-int isFifoEmpty( int fd )
+void sendProduct( int *fd, Product product )
 {
-    int sz = 0;
-    ioctl( fd, FIONREAD, &sz );
-    return !sz;
+    if ( write( *fd, &product, sizeof( Product ) ) < 0 )
+    {
+        perror("sendProduct: Error writing to file" );
+        exit( EXIT_FAILURE );
+    }
 }
 
 void createProduct( Product *product, int id, int sig_num )
@@ -175,13 +177,11 @@ void createProduct( Product *product, int id, int sig_num )
     }
 }
 
-void sendProduct( int *fd, Product product )
+int isFifoEmpty( int fd )
 {
-    if ( write( *fd, &product, sizeof( Product ) ) < 0 )
-    {
-        perror("sendProduct: Error writing to file" );
-        exit( EXIT_FAILURE );
-    }
+    int sz = 0;
+    ioctl( fd, FIONREAD, &sz );
+    return !sz;
 }
 
 int openFifo( int *fd, char *fifo )
@@ -191,12 +191,10 @@ int openFifo( int *fd, char *fifo )
     {
         return 999;
 
-    }
-    else if( !S_ISFIFO(stat_p.st_mode) )
+    } else if( !S_ISFIFO(stat_p.st_mode) )
     {
         return 998;
-    }
-    else
+    } else
     {
         errno = 0;
         if ( ( *fd = open( fifo, O_WRONLY | O_NONBLOCK ) ) < 0 )
@@ -238,7 +236,7 @@ int readLine( int fd, char *file )
     char *buff = file;
     char c;
     int status;
-    while ( 1 )
+    for(EVER)
     {
         status = read( fd, &c, 1 );
         if ( status < 0 )
