@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     printf("Wczytalem parametry.\n\n");
 
     Product** products = malloc( sizeof( Product ) * MAX_PRODUCT_AMOUNT );
-    if( products < 0 )
+    if( !products )
     {
         perror("malloc: Error allocating products");
         exit( EXIT_FAILURE );
@@ -34,10 +34,10 @@ int main(int argc, char *argv[])
     sa.sa_sigaction = handler;
     sa.sa_flags = SA_SIGINFO;
 
-    if (sigemptyset(&sa.sa_mask))
+    if ( sigemptyset( &sa.sa_mask ) )
         perror("sigemptyset");
-    if (sigaction(sig_num, &sa, NULL) == -1)
-        perror("sigaction error");
+    if (sigaction( sig_num, &sa, NULL ) == -1 )
+        perror( "sigaction error" );
 
 // ========================
 //    struct sigaction sa1;
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 // ========================
 
     char **fifo_paths = malloc(CONF_FILE_SIZE * sizeof(char *));
-    if( fifo_paths < 0 )
+    if( !fifo_paths )
     {
         perror("Malloc: Error allocating fifo_paths");
         exit( EXIT_FAILURE );
@@ -97,17 +97,17 @@ int main(int argc, char *argv[])
                 i++;
             } else
             {
-                ptr = malloc(sizeof(Product));
-                if( ptr < 0 )
+                ptr = malloc( sizeof( Product ) );
+                if( !ptr )
                 {
                     perror("Malloc: Error allocating ptr");
                     exit( EXIT_FAILURE );
                 }
-                createProduct(ptr, counter, sig_num);
-                printf("Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[i]);
-                sendProduct(&fd, *ptr++);
+                createProduct( ptr, counter, sig_num );
+                printf( "Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[ i ] );
+                sendProduct( &fd, *ptr++ );
                 //1 - produkt wyslany, ale nie oplacony
-                isSold[counter++] = 1;
+                isSold[ counter++ ] = 1;
                 i++;
             }
         }
@@ -115,9 +115,9 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void handler(int sig, siginfo_t *si, void *uap)
+void handler( int sig, siginfo_t *si, void *uap )
 {
-    printf("Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int);
+    printf( "Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int );
     //2 - produkt zostal oplacony
     isSold[si->si_value.sival_int] = 2;
 }
