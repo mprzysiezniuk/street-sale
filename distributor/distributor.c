@@ -70,19 +70,26 @@ int main( int argc, char* argv[] )
 //            perror("Nanosleep error: \n");
 //            exit(EXIT_FAILURE);
 //        }
-        sleep(5);
+        sleep(2);
 
         if (i == arr_len - 1) {
             i = 0;
         }
         printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
-        if (openFifo(&fd, fifo_paths[i]) == ENXIO)
+        int status = openFifo( &fd, fifo_paths[i] );
+        if (status == ENXIO)
         {
             printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
             i++;
             //close(fd);
             continue;
-        } else {
+        }
+        else if( status == 999 || status == 998)
+        {
+            printf("Podany plik to nie fifo.\n\n");
+            i++;
+        }
+        else {
             if (isFifoEmpty(fd)) {
                 //close(fd);
                 printf("fifo jest puste\n\n");
@@ -129,19 +136,30 @@ void readConfigurationFile(char** fifo_paths, char* path_to_conf_file, int* fd)
 
 int openFifo(int *fd, char *fifo)
 {
-    errno = 0;
-    if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0) {
-        if (errno != ENXIO) {
-            perror("openFile: Could not open file\n");
-            exit(EXIT_FAILURE);
+    struct stat stat_p;
+    if( stat( fifo, &stat_p ) < 0 )
+    {
+        return 999;
+
+    }
+    else if( !S_ISFIFO(stat_p.st_mode) )
+    {
+        return 998;
+    }
+    else {
+        errno = 0;
+        if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0) {
+            if (errno != ENXIO) {
+                perror("openFile: Could not open file\n");
+                exit(EXIT_FAILURE);
+            }
         }
+        if (errno == ENXIO) {
+            return errno;
+        }
+        errno = 0;
+        return 0;
     }
-    if (errno == ENXIO) {
-        //close(*fd);
-        return errno;
-    }
-    errno = 0;
-    return 0;
 }
 
 int isFifoEmpty(int fd)

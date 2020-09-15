@@ -34,15 +34,15 @@ int main(int argc, char *argv[])
 
 // ========================
 
-    struct sigaction sa1;
-
-    memset(&sa1, '\0', sizeof(sa1));
-    sa1.sa_sigaction = handler1;
-    sa1.sa_flags = SA_SIGINFO;
-    if (sigemptyset(&sa.sa_mask))
-        perror("sigemptyset");
-    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
-        perror("sigaction error");
+//    struct sigaction sa1;
+//
+//    memset(&sa1, '\0', sizeof(sa1));
+//    sa1.sa_sigaction = handler1;
+//    sa1.sa_flags = SA_SIGINFO;
+//    if (sigemptyset(&sa.sa_mask))
+//        perror("sigemptyset");
+//    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
+//        perror("sigaction error");
 
 // ========================
 
@@ -63,26 +63,28 @@ int main(int argc, char *argv[])
     Product *ptr = *products;
     while( 1 )
     {
-        sleep(5);
+        sleep(2);
 
         if ( i == arr_len - 1 )
         {
             i = 0;
         }
         printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
-        if( openFifo( &fd, fifo_paths[i] ) == ENXIO )
+        int status = openFifo( &fd, fifo_paths[i] );
+        if(  status == ENXIO )
         {
             printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
             i++;
-            //close(fd);
-            continue;
-        } else
+        } else if( status == 999 || status == 998)
+        {
+            printf("Podany plik to nie fifo.\n\n");
+            i++;
+        }else
         {
             if( !isFifoEmpty( fd ) )
             {
                 printf("Kanal dystrybucji jest zajety\n\n");
                 i++;
-                continue;
             } else
             {
                 ptr = malloc(sizeof(Product));
@@ -170,21 +172,35 @@ void sendProduct(int *fd, Product product)
 
 int openFifo(int *fd, char *fifo)
 {
-    errno = 0;
-    if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0)
+    struct stat stat_p;
+    if( stat( fifo, &stat_p ) < 0 )
     {
-        if (errno != ENXIO)
+        return 999;
+
+    }
+    else if( !S_ISFIFO(stat_p.st_mode) )
+    {
+        return 998;
+    }
+    else
+    {
+        errno = 0;
+        if ((*fd = open(fifo, O_WRONLY | O_NONBLOCK)) < 0)
         {
-            perror("openFile: Could not open file\n");
-            exit(EXIT_FAILURE);
+            if (errno != ENXIO)
+            {
+                perror("openFile: Could not open file\n");
+                exit(EXIT_FAILURE);
+            }
         }
+        if (errno == ENXIO)
+        {
+            return errno;
+        }
+        errno = 0;
+        return 0;
     }
-    if (errno == ENXIO)
-    {
-        return errno;
-    }
-    errno = 0;
-    return 0;
+    return 1;
 }
 
 void readConfigurationFile(char **fifo_paths, char *path_to_conf_file, int *fd)

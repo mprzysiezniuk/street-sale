@@ -62,6 +62,16 @@ void getArgs(unsigned int* number_of_products, char** path, int argc, char* argv
 
 void openFifo( int* fd, char* fifo_path )
 {
+    struct stat stat_p;
+    if( stat( fifo_path, &stat_p ) < 0 )
+    {
+        if( mkfifo( fifo_path, 0600 ) < 0 )
+        {
+            perror("Error creating fifo");
+            exit( EXIT_FAILURE );
+        }
+    }
+
     if( ( *fd = open( fifo_path, O_RDONLY ) ) < 0 )
     {
         perror("openFifo: error opening fifo.\n");
@@ -83,6 +93,7 @@ void collectItem( int* fd, char* fifo_path)
 {
     struct Item* item = malloc(sizeof(struct Item));
     openFifo( fd, fifo_path);
+    sleep(10);
     read( *fd, item, sizeof(struct Item) );
     union sigval sig;
     sig.sival_int = item->product_id;
