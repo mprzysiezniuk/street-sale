@@ -32,4 +32,7 @@ int isFifoEmpty( int fd );
 void createFlyer( Flyer* flyer, int signal_number, int ads_number );
 void sendFlyer( int* fd, Flyer flyers );
 Flyer pickFlyer( Flyer** flyers, int ads_number );
+void setSigaction( int sig_num, void(*handler) );
 void handler( int sig, siginfo_t *si, void *uap );
+void setSigactionUsr( void( *handler ) );
+void handler1(  );

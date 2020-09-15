@@ -34,32 +34,8 @@ int main( int argc, char* argv[] )
         }
         createFlyer( flyers[ i ], sig_num, i );
     }
-// ========================
-
-    struct sigaction sa;
-
-    memset(&sa, '\0', sizeof(sa));
-    sa.sa_sigaction = handler;
-    sa.sa_flags = SA_SIGINFO;
-    if (sigemptyset(&sa.sa_mask))
-        perror("sigemptyset");
-    if (sigaction(sig_num, &sa, NULL) == -1)
-        perror("sigaction error");
-
-// ========================
-// ========================
-
-//    struct sigaction sa1;
-//
-//    memset(&sa1, '\0', sizeof(sa1));
-//    sa1.sa_sigaction = handler1;
-//    sa1.sa_flags = SA_SIGINFO;
-//    if (sigemptyset(&sa.sa_mask))
-//        perror("sigemptyset");
-//    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
-//        perror("sigaction error");
-
-// ========================
+    setSigaction( sig_num, handler );
+    setSigactionUsr( handler1 );
 
 //    printf("Posiadane ulotki: \n\n");
 //    for( int i = 0; i < ads_number; i++ )
@@ -122,9 +98,40 @@ int main( int argc, char* argv[] )
     return 0;
 }
 
+void handler1(  )
+{
+    printf("sigusr\n");
+}
+
+void setSigactionUsr( void( *handler ) )
+{
+    struct sigaction sa1;
+
+    memset(&sa1, '\0', sizeof(sa1));
+    sa1.sa_sigaction = handler1;
+    sa1.sa_flags = SA_SIGINFO;
+    if (sigemptyset(&sa1.sa_mask))
+        perror("sigemptyset");
+    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
+        perror("sigaction error");
+}
+
 void handler( int sig, siginfo_t *si, void *uap )
 {
     printf( "Ulotka o ID: %d zostala odczytana.\n\n", si->si_value.sival_int );
+}
+
+void setSigaction( int sig_num, void(*handler) )
+{
+    struct sigaction sa;
+
+    memset(&sa, '\0', sizeof(sa));
+    sa.sa_sigaction = handler1;
+    sa.sa_flags = SA_SIGINFO;
+    if (sigemptyset(&sa.sa_mask))
+        perror("sigemptyset");
+    if (sigaction(sig_num, &sa, NULL) == -1)
+        perror("sigaction error");
 }
 
 Flyer pickFlyer( Flyer** flyers, int ads_number )

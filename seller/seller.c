@@ -27,29 +27,8 @@ int main(int argc, char *argv[])
 
     srand( time(NULL));
 
-    struct sigaction sa;
-
-    memset(&sa, '\0', sizeof(sa));
-
-    sa.sa_sigaction = handler;
-    sa.sa_flags = SA_SIGINFO;
-
-    if ( sigemptyset( &sa.sa_mask ) )
-        perror("sigemptyset");
-    if (sigaction( sig_num, &sa, NULL ) == -1 )
-        perror( "sigaction error" );
-
-// ========================
-//    struct sigaction sa1;
-//
-//    memset(&sa1, '\0', sizeof(sa1));
-//    sa1.sa_sigaction = handler1;
-//    sa1.sa_flags = SA_SIGINFO;
-//    if (sigemptyset(&sa.sa_mask))
-//        perror("sigemptyset");
-//    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
-//        perror("sigaction error");
-// ========================
+    setSigaction( sig_num, handler );
+    setSigactionUsr( handler1 );
 
     char **fifo_paths = malloc(CONF_FILE_SIZE * sizeof(char *));
     if( !fifo_paths )
@@ -115,13 +94,6 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void handler( int sig, siginfo_t *si, void *uap )
-{
-    printf( "Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int );
-    //2 - produkt zostal oplacony
-    isSold[si->si_value.sival_int] = 2;
-}
-
 void handler1()
 {
     int amount = 0;
@@ -139,6 +111,41 @@ void handler1()
         }
     }
     printf( "Unpaid products number: %d\n\n", amount );
+}
+
+void setSigactionUsr( void( *handler ) )
+{
+    struct sigaction sa1;
+
+    memset(&sa1, '\0', sizeof(sa1));
+    sa1.sa_sigaction = handler1;
+    if (sigemptyset(&sa1.sa_mask))
+        perror("sigemptyset");
+    if (sigaction(SIGUSR1, &sa1, NULL) == -1)
+        perror("sigaction error");
+
+}
+
+void handler( int sig, siginfo_t *si, void *uap )
+{
+    printf( "Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int );
+    //2 - produkt zostal oplacony
+    isSold[si->si_value.sival_int] = 2;
+}
+
+void setSigaction( int sig_num, void( *handler ) )
+{
+    struct sigaction sa;
+
+    memset(&sa, '\0', sizeof(sa));
+
+    sa.sa_sigaction = handler;
+    sa.sa_flags = SA_SIGINFO;
+
+    if ( sigemptyset( &sa.sa_mask ) )
+        perror("sigemptyset");
+    if (sigaction( sig_num, &sa, NULL ) == -1 )
+        perror( "sigaction error" );
 }
 
 void sendProduct( int *fd, Product product )
