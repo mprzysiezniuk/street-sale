@@ -22,15 +22,14 @@ typedef struct Products
     pid_t pid;
     int sig_num;
     int product_id;
-
 } Product;
 
 void getArgs( int* sig_num, char** path, int argc, char* argv[]);
 void createProduct( Product* product, int id, int sig_num );
-void readConfigurationFile( char** fifo_paths, char* path_to_conf_file, int* fd );
+void loadConfigFile( char** fifo_paths, char* path_to_conf_file );
 int openFifo( int* fd, char* fifo);
 void sendProduct( int* fd, Product product);
 int readLine( int fd, char* file );
 void handler(int sig, siginfo_t *si, void *uap);
 void handler1();
-int isFifoEmpty(int fd);
+int isFifoEmpty( int fd );
