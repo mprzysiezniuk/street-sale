@@ -10,9 +10,8 @@
 #include <time.h>
 #include <sys/ioctl.h>
 
-//#define TAB_SIZE 10240
 #define MAX_PRODUCT_AMOUNT 1000
-#define TAB_SIZE 193
+#define TAB_SIZE 10240
 #define CONF_FILE_SIZE 50
 #define EOFILE status==0
 #define EVER ;;

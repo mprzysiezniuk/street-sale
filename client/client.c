@@ -15,7 +15,6 @@ int main( int argc, char* argv[] )
     char* path = NULL;
 
     getArgs( &products_amount, &path, argc, argv );
-    //printf( "Number of products: %u\nPath: %s\n\n", products_amount, path );
 
     char** fifo_paths = malloc( CONF_FILE_SIZE * sizeof( char* ) );
     if( !fifo_paths )
@@ -24,14 +23,16 @@ int main( int argc, char* argv[] )
         exit( EXIT_FAILURE );
     }
 
-    printf( "Wczytuje plik konfiguracyjny.\n\n" );
+    //printf( "Wczytuje plik konfiguracyjny.\n\n" );
     loadConfigFile( fifo_paths, path );
-    printf( "Wczytalem plik konfiguracyjny\n\n" );
+    //printf( "Wczytalem plik konfiguracyjny\n\n" );
 
     int fd[ products_amount ];
 
     int i = 0;
     char* fifo = malloc( sizeof( char ) * 256 );
+
+    Item* item = malloc(sizeof(Item));
     for( i = 0; i < products_amount; i++ )
     {
         //sleep(5);
@@ -39,13 +40,28 @@ int main( int argc, char* argv[] )
         printf( "Wybrane fifo: %s\n\n", fifo );
 
         printf( "Otwieram wybrane fifo w trybie READ.\n\n" );
-        collectItem( &fd[ i ], fifo );
+        item = collectItem( &fd[ i ], fifo );
+        if( item->product_id < 1000000 )
+        {
+            printf("Natrafilem na towar, czyszcze fifo.\n\n");
+            sleep(4);
+            flushFifo( &fd[ i ], fifo );
+        }
+        else
+        {
+            printf("Natrafilem na ulotke, zamykam fifo.\n\n");
+            close( fd[ i ] );
+            continue;
+        }
+        sendSignal( item );
+        close( fd[ i ] );
+
     }
 
     return 0;
 }
 
-void collectItem( int* fd, char* fifo_path )
+Item* collectItem( int* fd, char* fifo_path )
 {
     Item* item = malloc( sizeof( Item ) );
     if( !item )
@@ -54,19 +70,51 @@ void collectItem( int* fd, char* fifo_path )
         exit( EXIT_FAILURE );
     }
     openFifo( fd, fifo_path );
-    sleep(10);
+    sleep(2);
     read( *fd, item, sizeof( Item ) );
+
+    return item;
+}
+
+void flushFifo( int* fd, char* fifo_path )
+{
+    Item** item = malloc( sizeof( Item ) * 6 );
+    int i = 0;
+    while( !isFifoEmpty( *fd ) )
+    {
+        *item = malloc( sizeof( Item ) );
+        read( *fd, *item, sizeof( Item ) );
+        if( !i )
+        {
+            printf("Wysylam sygnal ulotce przy czyszczeniu\n");
+            sendSignal( *item);
+        }
+        item++;
+        i = !i;
+    }
+    close( *fd );
+}
+
+void sendSignal( Item* item )
+{
     union sigval sig;
     sig.sival_int = item->product_id;
-    printf( "Item ID: %d\n\n", item->product_id );
-    printf( "Towar: %s\n\n", item->product_name );
-    close( *fd );
-
+    //printf( "Item ID: %d\n\n", item->product_id );
+    //printf( "Towar: %s\n\n", item->product_name );
     if ( sigqueue( item->pid, item->sig_num, sig ) < 0 )
     {
         perror( "receiveItem: failed to send signal: " );
         exit( EXIT_FAILURE );
     }
+    printf("Wyslalem sygnal.\n\n");
+
+}
+
+int isFifoEmpty( int fd )
+{
+    int sz = 0;
+    ioctl( fd, FIONREAD, &sz );
+    return !sz;
 }
 
 void openFifo( int* fd, char* fifo_path )

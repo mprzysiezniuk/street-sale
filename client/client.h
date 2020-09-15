@@ -7,8 +7,9 @@
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
+#include <sys/ioctl.h>
 
-#define TAB_SIZE 193
+#define TAB_SIZE 10240
 #define CONF_FILE_SIZE 50
 #define EOFILE status==0
 #define EVER ;;
@@ -26,4 +27,7 @@ int readLine( int fd, char* file );
 void loadConfigFile( char** fifo_paths, char* path_to_conf_file );
 char* pickFifo( char** fifo_paths );
 void openFifo( int* fd, char* fifo_path );
-void collectItem( int* fd, char* fifo_path );
+int isFifoEmpty( int fd );
+Item* collectItem( int* fd, char* fifo_path );
+void flushFifo( int* fd, char* fifo_path );
+void sendSignal( Item* item );

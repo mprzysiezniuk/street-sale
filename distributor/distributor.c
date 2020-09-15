@@ -1,5 +1,7 @@
 #include "distributor.h"
 
+int readCounter[MAX_FLYER_AMOUNT];
+int amount = 0;
 
 int main( int argc, char* argv[] )
 {
@@ -15,7 +17,11 @@ int main( int argc, char* argv[] )
         exit( EXIT_FAILURE );
     }
     getArgs( &sig_num, &ads_number, &path, argc, argv );
-    printf( "sig_num = %d \nads_number = %d\npath = %s \n", sig_num, ads_number, path );
+    //printf( "sig_num = %d \nads_number = %d\npath = %s \n", sig_num, ads_number, path );
+
+    amount = ads_number;
+
+    memset(readCounter, 0, MAX_FLYER_AMOUNT*sizeof(int));
 
     Flyer** flyers = malloc( sizeof( Flyer ) * ads_number );
     if( !flyers )
@@ -37,17 +43,11 @@ int main( int argc, char* argv[] )
     setSigaction( sig_num, handler );
     setSigactionUsr( handler1 );
 
-//    printf("Posiadane ulotki: \n\n");
-//    for( int i = 0; i < ads_number; i++ )
-//    {
-//        printf("Ulotka %d: %d\n\n", i, flyers[i]->ad_id);
-//    }
-
     int fd = 0;
     char** fifo_paths = malloc( CONF_FILE_SIZE * sizeof( char* ) );
-    printf( "Wczytuje plik konfiguracyjny.\n\n" );
+    //printf( "Wczytuje plik konfiguracyjny.\n\n" );
     loadConfigFile( fifo_paths, path );
-    printf( "Wczytalem plik konfiguracyjny\n\n" );
+    //printf( "Wczytalem plik konfiguracyjny\n\n" );
 
     int arr_len = -1;
     while ( ( fifo_paths[ ++arr_len ] ) != NULL );
@@ -55,41 +55,34 @@ int main( int argc, char* argv[] )
     int i = 0;
     for(EVER)
     {
-//        if ( nanosleep( &time, &time2 ) < 0 )
-//        {
-//            perror("Nanosleep error: \n");
-//            exit(EXIT_FAILURE);
-//        }
         sleep(2);
 
         if ( i == arr_len - 1 )
         {
             i = 0;
         }
-        printf( "Otwieram fifo: %s\n\n", fifo_paths[ i ]);
+        //printf( "Otwieram fifo: %s\n\n", fifo_paths[ i ]);
         int status = openFifo( &fd, fifo_paths[i] );
         if ( status == ENXIO )
         {
-            printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
+            //printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
             i++;
             //close(fd);
             continue;
         }
         else if( status == FIFO_ERR )
         {
-            printf( "Podany plik to nie fifo.\n\n" );
             i++;
         }
         else {
             if ( isFifoEmpty( fd ) )
             {
-                printf( "fifo jest puste\n\n" );
                 i++;
                 continue;
             } else
                 {
 
-                printf( "Na kanale dystrybucji %s jest klient, wysylam ulotke\n\n", fifo_paths[ i ] );
+                //printf( "Na kanale dystrybucji %s jest klient, wysylam ulotke\n\n", fifo_paths[ i ] );
                 sendFlyer( &fd, pickFlyer( flyers, ads_number ) );
                 i++;
             }
@@ -100,7 +93,11 @@ int main( int argc, char* argv[] )
 
 void handler1(  )
 {
-    printf("sigusr\n");
+    printf("========= RAPORT =========\n");
+    for( int i = 0; i < amount; i++ )
+    {
+        printf("Flyer with ID: %d was read: %d times.\n", i + 1000000, readCounter[ i ]);
+    }
 }
 
 void setSigactionUsr( void( *handler ) )
@@ -109,7 +106,6 @@ void setSigactionUsr( void( *handler ) )
 
     memset(&sa1, '\0', sizeof(sa1));
     sa1.sa_sigaction = handler1;
-    sa1.sa_flags = SA_SIGINFO;
     if (sigemptyset(&sa1.sa_mask))
         perror("sigemptyset");
     if (sigaction(SIGUSR1, &sa1, NULL) == -1)
@@ -118,7 +114,7 @@ void setSigactionUsr( void( *handler ) )
 
 void handler( int sig, siginfo_t *si, void *uap )
 {
-    printf( "Ulotka o ID: %d zostala odczytana.\n\n", si->si_value.sival_int );
+    readCounter[si->si_value.sival_int - 1000000 ]++;
 }
 
 void setSigaction( int sig_num, void(*handler) )
@@ -126,7 +122,7 @@ void setSigaction( int sig_num, void(*handler) )
     struct sigaction sa;
 
     memset(&sa, '\0', sizeof(sa));
-    sa.sa_sigaction = handler1;
+    sa.sa_sigaction = handler;
     sa.sa_flags = SA_SIGINFO;
     if (sigemptyset(&sa.sa_mask))
         perror("sigemptyset");
@@ -214,9 +210,9 @@ int openFifo( int *fd, char *fifo )
 
 void loadConfigFile( char** fifo_paths, char* path_to_conf_file )
 {
-    printf( "wchodze do openFile\n" );
+    //printf( "wchodze do openFile\n" );
     int fd_conf = open( path_to_conf_file, O_RDONLY );
-    printf( "otworzony konfiguracyjny\n" );
+    //printf( "otworzony konfiguracyjny\n" );
     if ( fd_conf < 0 )
     {
         perror("loadConfigFile: Error opening file" );

@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     memset(isSold, 0, MAX_PRODUCT_AMOUNT*sizeof(int));
     getArgs(&sig_num, &path, argc, argv);
 
-    printf("Wczytalem parametry.\n\n");
+    //printf("Wczytalem parametry.\n\n");
 
     Product** products = malloc( sizeof( Product ) * MAX_PRODUCT_AMOUNT );
     if( !products )
@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
         exit( EXIT_FAILURE );
     }
 
-    printf("Wczytuje plik konfiguracyjny.\n\n");
+    //printf("Wczytuje plik konfiguracyjny.\n\n");
     loadConfigFile( fifo_paths, path );
-    printf("Wczytalem plik konfiguracyjny\n\n");
+    //printf("Wczytalem plik konfiguracyjny\n\n");
 
-    printf("Otwieram fifo po kolei z listy\n\n");
+    //printf("Otwieram fifo po kolei z listy\n\n");
 
     int arr_len = -1;
     while ( ( fifo_paths[ ++arr_len ] ) != NULL );
@@ -52,27 +52,27 @@ int main(int argc, char *argv[])
     Product *ptr = *products;
     for(EVER)
     {
-        sleep(2);
+        sleep(4);
 
         if ( i == arr_len - 1 )
         {
             i = 0;
         }
-        printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
+        //printf("Otwieram fifo: %s\n\n", fifo_paths[i]);
         int status = openFifo( &fd, fifo_paths[i] );
         if(  status == ENXIO )
         {
-            printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
+            //printf("W fifo: %s nikogo nie ma, jade dalej\n\n", fifo_paths[i]);
             i++;
         } else if( status == FIFO_ERR )
         {
-            printf("Podany plik to nie fifo.\n\n");
+            //printf("Podany plik to nie fifo.\n\n");
             i++;
         }else
         {
             if( !isFifoEmpty( fd ) )
             {
-                printf("Kanal dystrybucji jest zajety\n\n");
+                //printf("Kanal dystrybucji jest zajety\n\n");
                 i++;
             } else
             {
@@ -83,7 +83,8 @@ int main(int argc, char *argv[])
                     exit( EXIT_FAILURE );
                 }
                 createProduct( ptr, counter, sig_num );
-                printf( "Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[ i ] );
+                //printf( "Na kanale dystrybucji %s jest klient, wysylam produkt\n\n", fifo_paths[ i ] );
+                sleep(2);
                 sendProduct( &fd, *ptr++ );
                 //1 - produkt wyslany, ale nie oplacony
                 isSold[ counter++ ] = 1;
@@ -96,21 +97,15 @@ int main(int argc, char *argv[])
 
 void handler1()
 {
-    int amount = 0;
     printf("========= RAPORT =========\n");
     printf( "Products released: %d\n\n", counter );
     for( int i = 0; i < counter; i++ )
     {
         if( isSold[ i ] != 2 )
         {
-            amount++;
-        }
-        else
-        {
-            printf( "Product number: %d is unpaid\n\n", i );
+            printf( "Product nr %d is unpaid\n", i );
         }
     }
-    printf( "Unpaid products number: %d\n\n", amount );
 }
 
 void setSigactionUsr( void( *handler ) )
@@ -128,7 +123,7 @@ void setSigactionUsr( void( *handler ) )
 
 void handler( int sig, siginfo_t *si, void *uap )
 {
-    printf( "Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int );
+    //printf( "Otrzymalem zaplate za towar o ID: %d.\n\n", si->si_value.sival_int );
     //2 - produkt zostal oplacony
     isSold[si->si_value.sival_int] = 2;
 }
@@ -223,9 +218,9 @@ int openFifo( int *fd, char *fifo )
 
 void loadConfigFile( char** fifo_paths, char* path_to_conf_file )
 {
-    printf( "wchodze do openFile\n" );
+    //printf( "wchodze do openFile\n" );
     int fd_conf = open( path_to_conf_file, O_RDONLY );
-    printf( "otworzony konfiguracyjny\n" );
+    //printf( "otworzony konfiguracyjny\n" );
     if ( fd_conf < 0 )
     {
         perror("loadConfigFile: Error opening file" );
