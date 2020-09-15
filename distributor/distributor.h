@@ -1,19 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <time.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/ioctl.h>
-
-#define TAB_SIZE 193
-#define CONF_FILE_SIZE 50
-#define EOFILE status==0
-#define EVER ;;
+#include "../covid.h"
 
 typedef struct Flyers
 {
@@ -24,10 +9,10 @@ typedef struct Flyers
 } Flyer;
 
 void getArgs( int* sig_num, int* ad_number, char** path, int argc, char* argv[] );
-int readLine( int fd, char* file);
-void loadConfigFile( char** fifo_paths, char* path_to_conf_file );
+//int readLine( int fd, char* file);
+//void loadConfigFile( char** fifo_paths, char* path_to_conf_file );
 int openFifo( int *fd, char *fifo );
-int isFifoEmpty( int fd );
+//int isFifoEmpty( int fd );
 void createFlyer( Flyer* flyer, int signal_number, int ads_number );
 void sendFlyer( int* fd, Flyer flyers );
 Flyer pickFlyer( Flyer** flyers, int ads_number );
