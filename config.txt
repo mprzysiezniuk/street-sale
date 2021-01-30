@@ -1,5 +1,0 @@
-/home/mprzysiezniuk/pipes/testpipe
-/home/mprzysiezniuk/not_created_pipes/pipe1
-/home/mprzysiezniuk/pipes/pipetest
-/home/mprzysiezniuk/not_created_pipes/pipe2
-/home/mprzysiezniuk/pipes/fifarafa
